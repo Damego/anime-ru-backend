@@ -111,7 +111,7 @@ class PostgresClient:
             password
         )
 
-    async def get_user(self, *, id: int = None, email: str = None, username: str = None) -> dict:
+    async def get_user(self, *, id: int = None, email: str = None, username: str = None) -> dict | None:
         filter = None
         if id is not None:
             filter = "user_id"
@@ -126,6 +126,8 @@ class PostgresClient:
             """,
             id or email or username
         )
+        if record is None:
+            return
 
         return {
             "id": record[0],

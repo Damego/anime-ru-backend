@@ -1,22 +1,20 @@
 from typing import Annotated
 
 from dotenv import load_dotenv
-from fastapi import FastAPI, Depends, HTTPException, status
-from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
+load_dotenv() # noqa
+from fastapi import FastAPI, Depends, HTTPException, status, Form
+from fastapi.security import OAuth2PasswordRequestForm
 
-load_dotenv()
-
+import dependencies
+from internal import oauth2, error
 from schemas import User, UserDB
 from database import postgres
 from routes import anime
 
 
-
 app = FastAPI()
 
 app.include_router(anime.router)
-
-oauth2scheme = OAuth2PasswordBearer("token")
 
 
 @app.on_event("startup")
@@ -24,40 +22,47 @@ async def start():
     await postgres.connect()
 
 
-async def fake_decode_token(token):
-    user = await postgres.get_user(username=token)
-    if not user:
+async def auth_user(username: str, password: str):
+    user_data = await postgres.get_user(username=username)
+    if not user_data:
         return
-    return UserDB(**user)
 
+    user = UserDB(**user_data)
 
-async def _get_current_user(token: Annotated[str, Depends(oauth2scheme)]):
-    user = await fake_decode_token(token)
-    if not user:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid authentication credentials",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
+    if not oauth2.verify_password(password, user.password):
+        return
+
     return user
 
 
 @app.post("/token")
 async def login(form_data: Annotated[OAuth2PasswordRequestForm, Depends()]):
-    user_data = await postgres.get_user(username=form_data.username)
-    if not user_data:
-        raise HTTPException(status_code=400, detail="Incorrect username or password")
+    user = await auth_user(form_data.username, form_data.password)
 
-    user = UserDB(**user_data)
+    if user is None:
+        raise error.InvalidUserData()
 
-    if user.password != form_data.password:
-        raise HTTPException(status_code=400, detail="Incorrect username or password")
+    access_token = oauth2.create_access_token({"sub": form_data.username})
 
     return {
-        "access_token": user.name, "token_type": "bearer"
+        "access_token": access_token, "token_type": "bearer"
     }
 
 
 @app.get("/users/me")
-async def get_current_user(user: Annotated[User, Depends(_get_current_user)]):
+async def get_current_user(user: Annotated[User, Depends(dependencies.get_current_user)]):
     return user
+
+
+@app.post("/users")
+async def register(username: Annotated[str, Form()], email: Annotated[str, Form()], password: Annotated[str, Form()]):
+    user = await postgres.get_user(username=username) or await postgres.get_user(email=email)
+    if user:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="User already exists")
+
+    hashed_password = oauth2.get_password_hash(password)
+    await postgres.create_user(username, email, hashed_password)
+
+    return {
+        "status": "success"
+    }
