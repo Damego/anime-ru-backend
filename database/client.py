@@ -60,7 +60,8 @@ class PostgresClient:
                 user_name varchar(50) NOT NULL,
                 user_email varchar(255) PRIMARY KEY NOT NULL,
                 user_password varchar(255) NOT NULL,
-                
+                permissions integer DEFAULT 0 NOT NULL,
+
                 UNIQUE (user_id),
                 UNIQUE (user_name)
             )
@@ -92,6 +93,18 @@ class PostgresClient:
                 FOREIGN KEY (anime_id) REFERENCES anime_titles(anime_id) ON DELETE CASCADE,
                 FOREIGN KEY (watch_type_id) REFERENCES watch_types(type_id) ON DELETE SET NULL,
                 PRIMARY KEY (user_id, anime_id)
+            )
+            """
+        )
+
+        await self.connection.execute(
+            """
+            CREATE TABLE IF NOT EXISTS sessions (
+                user_id INTEGER,
+                session_id varchar(255),
+
+                FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE,
+                PRIMARY KEY (user_id, session_id)
             )
             """
         )
@@ -143,6 +156,26 @@ class PostgresClient:
             """,
             user_id
         )
+
+    async def get_user_from_session_id(self, session_id: str) -> dict | None:
+        user_id = await self.connection.fetchval("SELECT user_id FROM sessions WHERE session_id=$1", session_id)
+        if user_id is None:
+            return
+        return await self.get_user(id=user_id)
+
+    async def add_session_id(self, user_id: int, session_id: str):
+        await self.connection.execute(
+            """
+            INSERT INTO sessions VALUES ($1, $2)
+            """,
+            user_id, session_id
+        )
+
+    async def get_sessions(self, user_id: int) -> list[str]:
+        records = await self.connection.fetch("SELECT session_id FROM sessions WHERE user_id=$1", user_id)
+        return [row[0] for row in records]
+
+    # TODO: delete session(s)
 
     async def add_anime(
         self,

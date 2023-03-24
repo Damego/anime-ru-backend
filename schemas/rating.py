@@ -12,8 +12,9 @@ class WatchType(BaseModel):
 class AnimeRating(BaseModel):
     anime: Anime
     user: User
+    score: int
     score_by_story: int | None = None
     score_by_characters: int | None = None
     score_by_drawing: int | None = None
-    score: int
+    review: str | None = None
     watch_type: WatchType
