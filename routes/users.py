@@ -1,6 +1,6 @@
 from typing import Annotated
 
-from fastapi import APIRouter, HTTPException, status, Form, Response,Cookie
+from fastapi import APIRouter, HTTPException, status, Form, Response, Cookie
 
 import dependencies
 from internal import auth, error

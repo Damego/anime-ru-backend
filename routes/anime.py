@@ -25,6 +25,11 @@ async def add_anime(anime: AddAnimePayload, user: Annotated[UserID, Depends(depe
     return AnimeID(**anime_data)
 
 
+@router.get("/animes")
+async def get_all_anime_titles():
+    return await postgres.get_all_anime()
+
+
 @router.get("/animes/{anime_id}")
 async def get_anime(anime_id: int) -> AnimeID:
     anime_data = await postgres.get_anime(anime_id)

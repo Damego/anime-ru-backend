@@ -217,6 +217,35 @@ class PostgresClient:
             ]
         }
 
+    async def get_all_anime(self):
+        record: list[asyncpg.Record] = await self.connection.fetch(
+            "SELECT * FROM anime_titles"
+        )
+        if record is None:
+            return
+
+        data = []
+        for anime in record:
+            genres = await self.connection.fetch(
+                """
+                SELECT * FROM genres WHERE genres.genre_id IN (SELECT genre_id FROM anime_genres WHERE anime_id=$1)
+                """,
+                anime[0]
+            )
+
+            data.append({
+                "id": anime[0],
+                "name": anime[1],
+                "description": anime[2],
+                "mal_id": anime[3],
+                "genres": [
+                    {"id": genre[0], "name": genre[1]} for genre in genres
+                ]
+            })
+
+        return data
+
+
     async def search_anime(self, name: str):
         record = await self.connection.fetch(
             """SELECT anime_id, anime_name FROM anime_titles WHERE anime_name LIKE $1""", name
