@@ -10,7 +10,7 @@ import dependencies
 router = APIRouter(prefix=API_PREFIX)
 
 
-@router.post("/animes")
+@router.post("/anime")
 async def add_anime(anime: AddAnimePayload, user: Annotated[UserID, Depends(dependencies.get_current_user)]) -> AnimeID:
     if not user.can_manage_anime():
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not enough permissions to do this action")
@@ -25,25 +25,30 @@ async def add_anime(anime: AddAnimePayload, user: Annotated[UserID, Depends(depe
     return AnimeID(**anime_data)
 
 
-@router.get("/animes")
-async def get_all_anime_titles():
-    return await postgres.get_all_anime()
+@router.get("/anime/list")
+async def get_anime_list(sort: str | None = None, genres: list[int] | None = None):
+    return await postgres.get_anime_list(sort, genres)
 
 
-@router.get("/animes/{anime_id}")
+@router.get("/anime/{anime_id}")
 async def get_anime(anime_id: int) -> AnimeID:
     anime_data = await postgres.get_anime(anime_id)
     return AnimeID(**anime_data)
 
 
-@router.delete("/animes/{anime_id}")
+@router.delete("/anime/{anime_id}")
 async def delete_anime(anime_id: int, user: Annotated[UserID, Depends(dependencies.get_current_user)]):
     if not user.can_manage_anime():
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not enough permissions to do this action")
     await postgres.delete_anime(anime_id)
 
 
-@router.post("/animes/genres")
+@router.get("/genres/list")
+async def get_list_genres():
+    return await postgres.get_genres()
+
+
+@router.post("/genres")
 async def add_genre(genre_name: str, user: Annotated[UserID, Depends(dependencies.get_current_user)]) -> GenreID:
     if not user.can_manage_anime():
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not enough permissions to do this action")

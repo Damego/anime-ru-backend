@@ -1,7 +1,9 @@
 import asyncpg
 
+from .sql_requests import SQLRequests
 
-class PostgresClient:
+
+class PostgresClient(SQLRequests):
     def __init__(self, *, host: str, port: int = 5432, user: str, password: str):
         self._host = host
         self._user = user
@@ -46,6 +48,7 @@ class PostgresClient:
             CREATE TABLE IF NOT EXISTS anime_genres (
                 anime_id INTEGER NOT NULL,
                 genre_id INTEGER NOT NULL,
+
                 FOREIGN KEY (anime_id) REFERENCES anime_titles(anime_id) ON DELETE CASCADE,
                 FOREIGN KEY (genre_id) REFERENCES genres(genre_id) ON DELETE CASCADE,
             
@@ -72,7 +75,7 @@ class PostgresClient:
             CREATE TABLE IF NOT EXISTS watch_types (
                 type_id serial,
                 type_name varchar(50) PRIMARY KEY NOT NULL,
-                
+
                 UNIQUE (type_id)
             )
             """
@@ -82,10 +85,10 @@ class PostgresClient:
             CREATE TABLE IF NOT EXISTS rating (
                 user_id INTEGER NOT NULL,
                 anime_id INTEGER NOT NULL,
-                score SMALLINT NOT NULL,
-                score_by_story SMALLINT,
-                score_by_characters SMALLINT,
-                score_by_drawing SMALLINT,
+                score SMALLINT NOT NULL CHECK (score >= 1 AND score <= 10),
+                score_by_story SMALLINT CHECK (score_by_story >= 1 AND score_by_story <= 10),
+                score_by_characters SMALLINT CHECK (score_by_characters >= 1 AND score_by_characters <= 10),
+                score_by_drawing SMALLINT CHECK (score_by_drawing >= 1 AND score_by_drawing <= 10),
                 review TEXT,
                 watch_type_id INTEGER,
             
@@ -217,34 +220,28 @@ class PostgresClient:
             ]
         }
 
-    async def get_all_anime(self):
-        record: list[asyncpg.Record] = await self.connection.fetch(
-            "SELECT * FROM anime_titles"
-        )
+    async def get_anime_list(self, sort: str | None = None, genres: list[int] | None = None):
+        if sort is not None and genres is not None:
+            record = await self.get_sorted_filtered_anime_list(sort, genres)
+        elif sort is not None:
+            record = await self.get_sorted_anime_list(sort)
+        elif genres is not None:
+            record = await self.get_filtered_anime_list(genres)
+        else:
+            return
+
         if record is None:
             return
 
         data = []
         for anime in record:
-            genres = await self.connection.fetch(
-                """
-                SELECT * FROM genres WHERE genres.genre_id IN (SELECT genre_id FROM anime_genres WHERE anime_id=$1)
-                """,
-                anime[0]
-            )
-
             data.append({
                 "id": anime[0],
                 "name": anime[1],
-                "description": anime[2],
-                "mal_id": anime[3],
-                "genres": [
-                    {"id": genre[0], "name": genre[1]} for genre in genres
-                ]
+                "image_url": anime[2],
             })
 
         return data
-
 
     async def search_anime(self, name: str):
         record = await self.connection.fetch(
