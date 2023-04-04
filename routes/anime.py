@@ -1,26 +1,40 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Form, UploadFile
 
 from database import postgres
 from config import API_PREFIX
-from schemas import AddAnimePayload, GenreID, AnimeID, UserID
+from schemas import GenreID, AnimeID, UserID
+from internal.cloud_storage import ImageKitCloudStorage
 import dependencies
 
 router = APIRouter(prefix=API_PREFIX)
 
 
 @router.post("/anime")
-async def add_anime(anime: AddAnimePayload, user: Annotated[UserID, Depends(dependencies.get_current_user)]) -> AnimeID:
+async def add_anime(
+    name: Annotated[str, Form()],
+    description: Annotated[str, Form()],
+    image: UploadFile,
+    user: Annotated[UserID, Depends(dependencies.get_current_user)]
+) -> AnimeID:
+    # TODO: limit max file size to 1 mb?
     if not user.can_manage_anime():
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not enough permissions to do this action")
 
     anime_id = await postgres.add_anime(
-        anime.name,
-        anime.mal_id,
-        anime.description
+        name,
+        description
     )
-    await postgres.add_anime_genres(anime_id, anime.genres)
+
+    image_url = await ImageKitCloudStorage().upload_file(
+        f"/anime/{anime_id}/",
+        image.file,
+        f"{anime_id}"
+    )
+
+    await postgres.update_anime(anime_id, image_url=image_url)
+
     anime_data = await postgres.get_anime(anime_id)
     return AnimeID(**anime_data)
 
