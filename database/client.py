@@ -183,19 +183,49 @@ class PostgresClient(SQLRequests):
     async def add_anime(
         self,
         name: str,
-        mal_id: int,
         description: str | None = None
     ) -> int:
         await self.connection.execute(
             """
-            INSERT INTO anime_titles (anime_name, description, mal_id) VALUES ($1, $2, $3)
+            INSERT INTO anime_titles (anime_name, description) VALUES ($1, $2)
             """,
             name,
             description,
-            mal_id
         )
         record = await self.connection.fetchrow("SELECT anime_id FROM anime_titles WHERE anime_name=$1", name)
         return record[0]
+
+    async def update_anime(
+        self,
+        id: int,
+        name: str | None = None,
+        description: str | None = None,
+        image_url: str | None = None,
+    ):
+        args = []
+        strings = []
+        count = 0
+
+        # I don't think that's good but idk
+        if name is not None:
+            count += 1
+            strings.append(f"anime_name=${count}")
+            args.append(name)
+        if description is not None:
+            count += 1
+            strings.append(f"anime_description=${count}")
+            args.append(description)
+        if image_url is not None:
+            count += 1
+            strings.append(f"image_url=${count}")
+            args.append(image_url)
+
+        await self.connection.execute(
+            f"""
+            UPDATE anime_titles SET {', '.join(strings)} WHERE anime_id={id}
+            """,
+            *args
+        )
 
     async def get_anime(self, id: int):
         record: asyncpg.Record = await self.connection.fetchrow(
