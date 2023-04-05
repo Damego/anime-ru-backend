@@ -149,7 +149,8 @@ class PostgresClient(SQLRequests):
             "id": record[0],
             "name": record[1],
             "email": record[2],
-            "password": record[3]
+            "password": record[3],
+            "permissions": record[4]
         }
 
     async def delete_user(self, user_id: int):
