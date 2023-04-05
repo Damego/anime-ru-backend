@@ -25,13 +25,13 @@ async def auth_user(username: str, password: str):
     return user
 
 
-@router.post("/auth")
+@router.post("/users/login")
 async def authorize_user(
-    login: Annotated[str, Form()],
+    username: Annotated[str, Form()],
     password: Annotated[str, Form()],
     response: Response
 ):
-    user = await auth_user(login, password)
+    user = await auth_user(username, password)
 
     if user is None:
         raise error.InvalidUserData()
@@ -43,7 +43,6 @@ async def authorize_user(
     )
 
     response.set_cookie("session_id", session_id)
-
     return {
         "session_id": session_id
     }
