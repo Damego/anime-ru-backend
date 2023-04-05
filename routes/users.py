@@ -13,7 +13,7 @@ router = APIRouter(prefix=API_PREFIX)
 
 
 async def auth_user(username: str, password: str):
-    user_data = await postgres.get_user(username=username)
+    user_data = await postgres.get_user(username=username) or await postgres.get_user(email=username)
     if not user_data:
         return
 
