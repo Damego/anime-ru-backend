@@ -42,7 +42,7 @@ async def authorize_user(
         user.id, session_id
     )
 
-    response.set_cookie("session_id", session_id, secure=True)
+    response.set_cookie("session_id", session_id, secure=True, samesite="none")
     return {
         "session_id": session_id
     }
