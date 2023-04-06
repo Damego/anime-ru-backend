@@ -76,7 +76,7 @@ def update_anime(
     strings = []
     count = 0
 
-    # I don't think that's good but idk
+    # I don't think this is good but idk
     if name is not None:
         count += 1
         strings.append(f"anime_name=${count}")

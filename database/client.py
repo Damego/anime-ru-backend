@@ -22,13 +22,13 @@ class PostgresClient:
         )
 
     async def create_tables(self):
-        await self.connection_pool.execute(requests.tables.create_genres_table())
-        await self.connection_pool.execute(requests.tables.create_anime_titles_table())
-        await self.connection_pool.execute(requests.tables.create_anime_genres_table())
-        await self.connection_pool.execute(requests.tables.create_users_table())
-        await self.connection_pool.execute(requests.tables.create_watch_types_table())
-        await self.connection_pool.execute(requests.tables.create_rating_table())
-        await self.connection_pool.execute(requests.tables.create_sessions_table())
+        await self.connection_pool.execute(requests.create_genres_table())
+        await self.connection_pool.execute(requests.create_anime_titles_table())
+        await self.connection_pool.execute(requests.create_anime_genres_table())
+        await self.connection_pool.execute(requests.create_users_table())
+        await self.connection_pool.execute(requests.create_watch_types_table())
+        await self.connection_pool.execute(requests.create_rating_table())
+        await self.connection_pool.execute(requests.create_sessions_table())
 
     async def create_user(
         self,
@@ -37,7 +37,7 @@ class PostgresClient:
         password: str
     ):
         await self.connection_pool.execute(
-            requests.user.add_user(),
+            requests.add_user(),
             name,
             email,
             password
@@ -45,7 +45,7 @@ class PostgresClient:
 
     async def get_user(self, *, id: int = None, email: str = None, username: str = None) -> dict | None:
         record: asyncpg.Record = await self.connection_pool.fetchrow(
-            requests.user.get_user(id=id, email=email, username=username),
+            requests.get_user(id=id, email=email, username=username),
             id or email or username
         )
         if record is None:
@@ -61,24 +61,24 @@ class PostgresClient:
 
     async def delete_user(self, user_id: int):
         await self.connection_pool.execute(
-            requests.user.delete_user(),
+            requests.delete_user(),
             user_id
         )
 
     async def get_user_from_session_id(self, session_id: str) -> dict | None:
-        user_id = await self.connection_pool.fetchval(requests.user.get_user_from_session_id(), session_id)
+        user_id = await self.connection_pool.fetchval(requests.get_user_from_session_id(), session_id)
         if user_id is None:
             return
         return await self.get_user(id=user_id)
 
     async def add_session_id(self, user_id: int, session_id: str):
         await self.connection_pool.execute(
-            requests.user.add_session_id(),
+            requests.add_session_id(),
             user_id, session_id
         )
 
     async def get_sessions(self, user_id: int) -> list[str]:
-        records = await self.connection_pool.fetch(requests.user.get_user_sessions(), user_id)
+        records = await self.connection_pool.fetch(requests.get_user_sessions(), user_id)
         return [row[0] for row in records]
 
     # TODO: delete session(s)
@@ -89,12 +89,12 @@ class PostgresClient:
         description: str | None = None
     ) -> int:
         await self.connection_pool.execute(
-            requests.anime.add_anime(),
+            requests.add_anime(),
             name,
             description,
         )
         # It's maybe the worst way to get ID from the inserted string
-        return await self.connection_pool.fetchval(requests.anime.get_anime_id_by_name(), name)
+        return await self.connection_pool.fetchval(requests.get_anime_id_by_name(), name)
 
     async def update_anime(
         self,
@@ -103,7 +103,7 @@ class PostgresClient:
         description: str | None = None,
         image_url: str | None = None,
     ):
-        request_string, args = requests.anime.update_anime(id, name, description, image_url)
+        request_string, args = requests.update_anime(id, name, description, image_url)
 
         await self.connection_pool.execute(
             request_string,
@@ -112,7 +112,7 @@ class PostgresClient:
 
     async def get_anime(self, id: int):
         record: asyncpg.Record = await self.connection_pool.fetchrow(
-            requests.anime.get_anime_data(), id)
+            requests.get_anime_data(), id)
         if record is None:
             return
 
@@ -126,12 +126,12 @@ class PostgresClient:
     async def get_anime_list(self, sort: str | None = None, genres: list[int] | None = None):
         if sort is not None and genres is not None:
             record = await self.connection_pool.fetch(
-                requests.anime.get_sorted_filtered_anime_list(sort, genres)
+                requests.get_sorted_filtered_anime_list(sort, genres)
             )
         elif sort is not None:
-            record = await self.connection_pool.fetch(requests.anime.get_sorted_anime_list(sort))
+            record = await self.connection_pool.fetch(requests.get_sorted_anime_list(sort))
         elif genres is not None:
-            record = await self.connection_pool.fetch(requests.anime.get_filtered_anime_list(genres))
+            record = await self.connection_pool.fetch(requests.get_filtered_anime_list(genres))
         else:
             return
 
@@ -150,7 +150,7 @@ class PostgresClient:
 
     async def search_anime(self, name: str):
         record = await self.connection_pool.fetch(
-            requests.anime.search_anime(), name
+            requests.search_anime(), name
         )
 
         return [
@@ -159,18 +159,18 @@ class PostgresClient:
 
     async def delete_anime(self, anime_id: int):
         await self.connection_pool.execute(
-            requests.anime.delete_anime_by_id(),
+            requests.delete_anime_by_id(),
             anime_id
         )
 
     async def add_genre(self, name: str) -> int:
         await self.connection_pool.execute(
-            requests.genres.add_genre(), name
+            requests.add_genre(), name
         )
-        return await self.connection_pool.fetchval(requests.genres.get_genre_id_by_name(), name)
+        return await self.connection_pool.fetchval(requests.get_genre_id_by_name(), name)
 
     async def get_genres(self):
-        record = await self.connection_pool.fetch(requests.genres.get_all_genres())
+        record = await self.connection_pool.fetch(requests.get_all_genres())
 
         return [
             {"id": genre[0], "name": genre[1]} for genre in record
@@ -178,18 +178,18 @@ class PostgresClient:
 
     async def remove_genre(self, genre_id: int):
         await self.connection_pool.execute(
-            requests.genres.delete_genre_by_id(),
+            requests.delete_genre_by_id(),
             genre_id
         )
 
     async def add_anime_genre(self, anime_id: int, genre_id: int):
         await self.connection_pool.execute(
-            requests.anime_genres.add_anime_genre(),
+            requests.add_anime_genre(),
             anime_id, genre_id
         )
 
     async def add_anime_genres(self, anime_id: int, genre_ids: list[int]):
-        request_string, args = requests.anime_genres.add_anime_genres(anime_id, genre_ids)
+        request_string, args = requests.add_anime_genres(anime_id, genre_ids)
 
         await self.connection_pool.execute(
             request_string,
@@ -198,7 +198,7 @@ class PostgresClient:
 
     async def remove_anime_genre(self, anime_id: int, genre_id: int):
         await self.connection_pool.execute(
-            requests.anime_genres.delete_anime_genre(),
+            requests.delete_anime_genre(),
             anime_id, genre_id
         )
 
@@ -214,7 +214,7 @@ class PostgresClient:
         watch_type: int | None = None
      ):
         await self.connection_pool.execute(
-            requests.rating.add_rating(),
+            requests.add_rating(),
             anime_id, user_id, score, score_by_story, score_by_characters, score_by_drawing, review, watch_type
         )
 
