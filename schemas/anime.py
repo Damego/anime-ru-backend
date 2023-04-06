@@ -17,10 +17,6 @@ class BaseAnime(BaseModel):
     mal_id: int
 
 
-class AddAnimePayload(BaseAnime):
-    genres: list[int]
-
-
 class Anime(BaseAnime):
     genres: list[Genre]
 
