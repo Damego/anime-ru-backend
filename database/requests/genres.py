@@ -1,5 +1,10 @@
 def get_anime_genres():
-    return "SELECT * FROM genres WHERE genres.genre_id IN (SELECT genre_id FROM anime_genres WHERE anime_id=$1"
+    return """
+    SELECT
+        genre_id,
+        (SELECT genre_name FROM genres WHERE genres.genre_id=anime_genres.genre_id)
+    FROM anime_genres WHERE anime_id=$1;
+"""
 
 
 def add_genre() -> str:
