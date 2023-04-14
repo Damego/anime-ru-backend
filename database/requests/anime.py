@@ -8,7 +8,7 @@ def get_sort_by_type(sort_type: str) -> str:
             return "ORDER BY (SELECT count(*) FROM rating WHERE rating.anime_id = anime_titles.anime_id) DESC NULLS LAST"
 
 
-def get_sorted_anime_list(sort_type: str) -> str:
+def get_sorted_anime_list(sort_type: str, search: bool) -> str:
     return f"""
     SELECT
         anime_id,
@@ -16,27 +16,12 @@ def get_sorted_anime_list(sort_type: str) -> str:
         image_url,
         (SELECT (sum(score) * 1.0 / count(*)) FROM rating WHERE rating.anime_id = anime_titles.anime_id) AS average_score
     FROM anime_titles
+    {"WHERE anime_name LIKE $1" if search else ""}
     {get_sort_by_type(sort_type)}
     """
 
 
-def get_filtered_anime_list(genres: list[int]) -> str:
-    return f"""
-    SELECT
-        anime_id,
-        anime_name,
-        image_url
-    FROM anime_titles
-    WHERE exists (
-        SELECT DISTINCT
-            anime_id
-        FROM anime_genres
-        WHERE anime_genres.anime_id=anime_titles.anime_id AND genre_id IN ({', '.join(map(str, genres))})
-        )
-    """
-
-
-def get_sorted_filtered_anime_list(sort_type: str, genres: list[int]) -> str:
+def get_filtered_anime_list(genres: list[int], search: bool) -> str:
     return f"""
     SELECT
         anime_id,
@@ -50,12 +35,39 @@ def get_sorted_filtered_anime_list(sort_type: str, genres: list[int]) -> str:
         FROM anime_genres
         WHERE anime_genres.anime_id=anime_titles.anime_id AND genre_id IN ({', '.join(map(str, genres))})
         )
+        {"AND anime_name LIKE $1" if search else ""}
+    """
+
+
+def get_sorted_filtered_anime_list(sort_type: str, genres: list[int], search: bool) -> str:
+    return f"""
+    SELECT
+        anime_id,
+        anime_name,
+        image_url,
+        (SELECT (sum(score) * 1.0 / count(*)) FROM rating WHERE rating.anime_id = anime_titles.anime_id) AS average_score
+    FROM anime_titles
+    WHERE exists (
+        SELECT DISTINCT
+            anime_id
+        FROM anime_genres
+        WHERE anime_genres.anime_id=anime_titles.anime_id AND genre_id IN ({', '.join(map(str, genres))})
+        )
+        {"AND anime_name LIKE $1" if search else ""}
     {get_sort_by_type(sort_type)}
     """
 
 
-def get_anime_list() -> str:
-    return "SELECT * FROM anime_titles"
+def get_anime_list(search: bool) -> str:
+    return f"""
+    SELECT 
+        anime_id,
+        anime_name,
+        image_url,
+        (SELECT (sum(score) * 1.0 / count(*)) FROM rating WHERE rating.anime_id = anime_titles.anime_id) AS average_score
+    FROM anime_titles
+    {"WHERE anime_name LIKE $1" if search else ""}
+    """
 
 
 def add_anime() -> str:

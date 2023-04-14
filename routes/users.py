@@ -1,10 +1,10 @@
 from typing import Annotated
 
-from fastapi import APIRouter, HTTPException, status, Form, Response, Cookie
+from fastapi import APIRouter, HTTPException, status, Form, Response, Depends, Request
 
 import dependencies
 from internal import auth, error
-from schemas import UserDB
+from schemas import UserDB, UserID
 from database import postgres
 from config import API_PREFIX
 
@@ -49,8 +49,8 @@ async def authorize_user(
 
 
 @router.get("/users/me")
-async def get_current_user(session_id: Annotated[str, Cookie()]):
-    return await dependencies.get_current_user(session_id)
+async def get_current_user(request: Request):
+    print(request.cookies)
 
 
 @router.post("/users")

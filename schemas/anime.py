@@ -13,13 +13,12 @@ class GenreID(IDModel, Genre):
 
 class BaseAnime(BaseModel):
     name: str
-    description: str | None = None
-    mal_id: int
+    image_url: str
 
 
 class Anime(BaseAnime):
     genres: list[Genre]
 
 
-class AnimeID(IDModel, BaseAnime):
-    genres: list[GenreID]
+class PartialAnime(IDModel, BaseAnime):
+    ...

@@ -123,17 +123,20 @@ class PostgresClient:
             "image_url": record[3],
         }
 
-    async def get_anime_list(self, sort: str | None = None, genres: list[int] | None = None):
+    async def get_anime_list(self, sort: str | None = None, genres: list[int] | None = None, search: str | None = False):
+        has_search = search is not None
+        args = [f"%{search}%"] if has_search else []
+
         if sort is not None and genres is not None:
             record = await self.connection_pool.fetch(
-                requests.get_sorted_filtered_anime_list(sort, genres)
+                requests.get_sorted_filtered_anime_list(sort, genres, has_search), *args
             )
         elif sort is not None:
-            record = await self.connection_pool.fetch(requests.get_sorted_anime_list(sort))
+            record = await self.connection_pool.fetch(requests.get_sorted_anime_list(sort, has_search), *args)
         elif genres is not None:
-            record = await self.connection_pool.fetch(requests.get_filtered_anime_list(genres))
+            record = await self.connection_pool.fetch(requests.get_filtered_anime_list(genres, has_search), *args)
         else:
-            return
+            record = await self.connection_pool.fetch(requests.get_anime_list(has_search), *args)
 
         if record is None:
             return
@@ -144,13 +147,14 @@ class PostgresClient:
                 "id": anime_[0],
                 "name": anime_[1],
                 "image_url": anime_[2],
+                "average_rating": anime_[3]
             })
 
         return data
 
     async def search_anime(self, name: str):
         record = await self.connection_pool.fetch(
-            requests.search_anime(), name
+            requests.search_anime(), f"%{name}%"
         )
 
         return [
