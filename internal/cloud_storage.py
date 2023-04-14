@@ -14,8 +14,8 @@ from .abstract import BaseCloudStorage, Singleton
 class ImageKitCloudStorage(BaseCloudStorage, Singleton):
     def __init__(self):
         self.image_kit = ImageKit(
-            environ["IMAGEKIT_PRIVATE_KEY"],
             environ["IMAGEKIT_PUBLIC_KEY"],
+            environ["IMAGEKIT_PRIVATE_KEY"],
             environ["IMAGEKIT_URL_ENDPOINT"]
         )
 
