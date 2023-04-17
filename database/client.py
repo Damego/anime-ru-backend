@@ -152,6 +152,37 @@ class PostgresClient:
 
         return data
 
+    async def get_all_anime_scores(self, anime_id: int):
+        record = await self.connection_pool.fetchrow(requests.get_anime_scores(), anime_id)
+        if not any(record):
+            return
+        data = {
+            f"score_{i + 1}": record[i]
+            for i in range(10)
+        }
+        data["total"] = record[10]
+        return data
+
+
+    async def get_average_anime_rating(self, anime_id: int):
+        record = await self.connection_pool.fetchrow(requests.get_average_anime_rating(), anime_id)
+        if not any(record):
+            return
+
+        return {
+            "score": record[0],
+            "score_by_story": record[1],
+            "score_by_drawing": record[2],
+            "score_by_characters": record[3],
+        }
+
+    async def get_anime_genres(self, anime_id: int):
+        record = await self.connection_pool.fetch(requests.get_anime_genres(), anime_id)
+
+        return [
+            {"id": genre[0], "name": genre[1]} for genre in record
+        ]
+
     async def search_anime(self, name: str):
         record = await self.connection_pool.fetch(
             requests.search_anime(), f"%{name}%"

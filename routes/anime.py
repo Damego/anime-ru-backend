@@ -1,10 +1,10 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, status, Form, File, UploadFile
+from fastapi import APIRouter, Depends, HTTPException, status, Form, Request, UploadFile
 
 from database import postgres
 from config import API_PREFIX
-from schemas import GenreID, PartialAnime, UserID
+from schemas import GenreID, PartialAnime, UserID, Anime
 from internal.cloud_storage import ImageKitCloudStorage
 import dependencies
 
@@ -17,9 +17,10 @@ async def add_anime(
     description: Annotated[str, Form()],
     genres: Annotated[str, Form()],
     image_file: UploadFile,
-    user: Annotated[UserID, Depends(dependencies.get_current_user)]
+    user: Annotated[UserID, Depends(dependencies.get_current_user)],
+    request: Request,
 ) -> PartialAnime:
-
+    print("add anime", request.cookies)
     # TODO: limit max file size to 1 mb?
     if not user.can_manage_anime():
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not enough permissions to do this action")
@@ -51,9 +52,24 @@ async def get_anime_list(sort: str | None = None, genres: str | None = None, sea
 
 
 @router.get("/anime/{anime_id}")
-async def get_anime(anime_id: int) -> PartialAnime:
+async def get_anime(anime_id: int, rating: str | None = None, with_genres: bool = False) -> Anime:
     anime_data = await postgres.get_anime(anime_id)
-    return PartialAnime(**anime_data)
+    if not rating and not with_genres:
+        return Anime(**anime_data)
+
+    if rating == "average":
+        anime_data["average_rating"] = await postgres.get_average_anime_rating(anime_id)
+    elif rating == "total":
+        anime_data["total_rating"] = await postgres.get_all_anime_scores(anime_id)
+    elif rating == "all":
+        anime_data["average_rating"] = await postgres.get_average_anime_rating(anime_id)
+        anime_data["total_rating"] = await postgres.get_all_anime_scores(anime_id)
+
+    if with_genres:
+        anime_data["genres"] = await postgres.get_anime_genres(anime_id)
+
+    return Anime(**anime_data)
+
 
 
 @router.delete("/anime/{anime_id}")
@@ -64,7 +80,8 @@ async def delete_anime(anime_id: int, user: Annotated[UserID, Depends(dependenci
 
 
 @router.get("/genres/list")
-async def get_list_genres():
+async def get_list_genres(request: Request):
+    print("genres list", request.cookies)
     return await postgres.get_genres()
 
 
