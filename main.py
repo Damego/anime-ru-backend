@@ -1,5 +1,5 @@
 from dotenv import load_dotenv
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 
 load_dotenv() # noqa
@@ -8,8 +8,6 @@ from routes import anime, users
 
 
 app = FastAPI()
-
-
 app.include_router(anime.router)
 app.include_router(users.router)
 
@@ -18,12 +16,6 @@ app.include_router(users.router)
 async def start():
     await postgres.connect()
 
-
-@app.get("/")
-async def index():
-    return {
-        "test": "yes"
-    }
 
 app.add_middleware(
     CORSMiddleware,
