@@ -49,8 +49,8 @@ async def authorize_user(
 
 
 @router.get("/users/me")
-async def get_current_user(request: Request):
-    print(request.cookies)
+async def get_current_user(user: Annotated[UserID, Depends(dependencies.get_current_user)]):
+    return user
 
 
 @router.post("/users")
