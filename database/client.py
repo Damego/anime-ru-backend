@@ -246,12 +246,26 @@ class PostgresClient:
         score_by_characters: int | None = None,
         score_by_drawing: int | None = None,
         review: str | None = None,
-        watch_type: int | None = None
      ):
         await self.connection_pool.execute(
             requests.add_rating(),
-            anime_id, user_id, score, score_by_story, score_by_characters, score_by_drawing, review, watch_type
+            user_id, anime_id, score, score_by_story, score_by_characters, score_by_drawing, review
         )
 
     async def remove_rating(self, rating_id: int):
         ...
+
+    async def get_user_anime_rating(self, anime_id: int, user_id: int):
+        record = await self.connection_pool.fetchrow(requests.get_user_rating(), user_id, anime_id)
+        if record is None:
+            return
+
+        return {
+            "user_id": record[0],
+            "anime_id": record[1],
+            "score": record[2],
+            "score_by_story": record[3],
+            "score_by_characters": record[4],
+            "score_by_drawing": record[5],
+            "review": record[6],
+        }

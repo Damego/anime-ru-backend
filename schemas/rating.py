@@ -9,6 +9,16 @@ class WatchType(BaseModel):
     name: str
 
 
+class PartialAnimeRating(BaseModel):
+    anime_id: int
+    user_id: int
+    score: int
+    score_by_story: int | None = None
+    score_by_characters: int | None = None
+    score_by_drawing: int | None = None
+    review: str | None = None
+
+
 class AnimeRating(BaseModel):
     anime: Anime
     user: User

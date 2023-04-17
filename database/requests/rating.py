@@ -7,10 +7,9 @@ def add_rating():
             score_by_story,
             score_by_characters,
             score_by_drawing,
-            review,
-            watch_type_id
+            review
         )
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+        VALUES ($1, $2, $3, $4, $5, $6, $7)
     """
 
 
@@ -55,4 +54,10 @@ def get_average_anime_rating():
             sum(score_by_characters) * 1.0 / count(*)
         FROM rating
         WHERE anime_id=$1
+    """
+
+
+def get_user_rating():
+    return """
+        SELECT * FROM rating WHERE user_id=$1 AND anime_id=$2
     """
