@@ -80,8 +80,7 @@ async def delete_anime(anime_id: int, user: Annotated[UserID, Depends(dependenci
 
 
 @router.get("/genres/list")
-async def get_list_genres(request: Request):
-    print("genres list", request.cookies)
+async def get_list_genres():
     return await postgres.get_genres()
 
 
@@ -94,3 +93,30 @@ async def add_genre(genre_name: str, user: Annotated[UserID, Depends(dependencie
         name=genre_name,
         id=genre_id
     )
+
+
+@router.post("/rating")
+async def add_anime_rating(
+    anime_id: Annotated[int, Form()],
+    score: Annotated[int, Form()],
+    score_by_story: Annotated[int, Form()],
+    score_by_drawing: Annotated[int, Form()],
+    score_by_characters: Annotated[int, Form()],
+    review: Annotated[str, Form()],
+    user: Annotated[UserID, Depends(dependencies.get_current_user)]
+):
+    await postgres.add_rating(
+        anime_id,
+        user.id,
+        score,
+        score_by_story,
+        score_by_characters,
+        score_by_drawing,
+        review
+    )
+    return {"status": "success"}
+
+
+@router.get("/rating")
+async def get_user_anime_rating(anime_id: int, user: Annotated[UserID, Depends(dependencies.get_current_user)]):
+    return await postgres.get_user_anime_rating(anime_id, user.id)
