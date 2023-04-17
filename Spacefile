@@ -3,5 +3,5 @@ v: 0
 micros:
   - name: anime-ru
     src: ./
-    engine: python3.11
+    engine: python3.9
     primary: true

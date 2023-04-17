@@ -1,0 +1,10 @@
+fastapi~=0.95.0
+python-dotenv~=1.0.0
+pydantic~=1.10.6
+asyncpg~=0.27.0
+passlib~=1.7.4
+imagekitio~=3.0.1
+uvicorn
+python-multipart
+python-jose
+cryptography
